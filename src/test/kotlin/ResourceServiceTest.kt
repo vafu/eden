@@ -1,6 +1,7 @@
 import com.tuule.eden.service.ResourceService
 import io.mockk.spyk
 import org.jetbrains.spek.api.Spek
+import org.jetbrains.spek.api.dsl.context
 import org.jetbrains.spek.api.dsl.given
 import org.jetbrains.spek.api.dsl.it
 import org.jetbrains.spek.api.dsl.on
@@ -24,12 +25,12 @@ class ResourceServiceTest : Spek({
 
         on("creating resources") {
 
-            it("successfully creates resource with valid absolute url") {
+            it("successfully creates resource when valid") {
                 val resource = service.resourceFromAbsoluteURL<Any>(validUrl)
                 assertNotNull(resource)
             }
 
-            it("should throw error with invalid absolute url") {
+            it("throws error when invalid") {
                 assertFails {
                     service.resourceFromAbsoluteURL<Any>(invalidUrl)
                 }
@@ -60,7 +61,11 @@ class ResourceServiceTest : Spek({
                 }
             }
 
-            it("should return equal resources for all methods") {
+
+        }
+
+        on("retrieving resources") {
+            it("returns equal resources for all methods") {
                 val relative = service.resource<Any>(validPath)
                 val child = service.resource<Any>(path1).child<Any>(path2)
                 val absolute = service.resource<Any>(validUrl, validPath)
@@ -68,7 +73,6 @@ class ResourceServiceTest : Spek({
                 assertEquals(relative, child)
                 assertEquals(child, absolute)
             }
-
         }
     }
 })
