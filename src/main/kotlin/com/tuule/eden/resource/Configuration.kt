@@ -8,3 +8,4 @@ class Configuration(val expirationTime: Long = 30000,
 
 
 typealias RequestMutation = (Request) -> Unit
+typealias RequestDecoration<T> = (Request, Resource<T>) -> Unit

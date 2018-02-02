@@ -7,7 +7,7 @@ import com.tuule.eden.util.addPath
 import com.tuule.eden.util.asValidUrl
 
 open class ResourceService(baseUrl: String? = null,
-                   internal val networkingProvider: NetworkingProvider? = null) {
+                           internal val networkingProvider: NetworkingProvider) {
 
     //todo multiplatform
     private val cache: WeakCache<String, Resource<*>> = WeakCacheJVM()

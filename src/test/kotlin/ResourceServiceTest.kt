@@ -1,10 +1,8 @@
 import com.tuule.eden.service.ResourceService
+import io.mockk.mockk
 import io.mockk.spyk
 import org.jetbrains.spek.api.Spek
-import org.jetbrains.spek.api.dsl.context
-import org.jetbrains.spek.api.dsl.given
-import org.jetbrains.spek.api.dsl.it
-import org.jetbrains.spek.api.dsl.on
+import org.jetbrains.spek.api.dsl.*
 import kotlin.test.assertEquals
 import kotlin.test.assertFails
 import kotlin.test.assertNotNull
@@ -21,16 +19,15 @@ private const val invalidPath = "someßƒ©∂/sdf943049EFD:h"
 
 class ResourceServiceTest : Spek({
     given("ResourceService") {
-        val service: ResourceService = spyk(ResourceService(validUrl))
+        val service: ResourceService = spyk(ResourceService(validUrl, mockk()))
 
         on("creating resources") {
-
-            it("successfully creates resource when valid") {
+            it("successfully creates resource when valid absolute path") {
                 val resource = service.resourceFromAbsoluteURL<Any>(validUrl)
                 assertNotNull(resource)
             }
 
-            it("throws error when invalid") {
+            it("throws error when invalid absolute path ") {
                 assertFails {
                     service.resourceFromAbsoluteURL<Any>(invalidUrl)
                 }
@@ -60,8 +57,6 @@ class ResourceServiceTest : Spek({
                     service.resource<Any>(validUrl, invalidPath)
                 }
             }
-
-
         }
 
         on("retrieving resources") {
