@@ -3,7 +3,7 @@ package com.tuule.eden.resource
 import com.tuule.eden.multiplatform.now
 import com.tuule.eden.networking.HTTPResponse
 
-data class Entity<T>(val content: T,
+data class Entity<out T>(val content: T,
                      private val _headers: Map<String, String>,
                      val timestamp: Long = now()) {
 

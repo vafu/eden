@@ -34,7 +34,7 @@ internal interface RequestBuilder {
     fun onNotModified(callback: () -> Unit)
 
     fun repeated(): RequestBuilder?
-    suspend fun start(): RequestInFlight?
+    fun start(): RequestInFlight?
 }
 
 internal class Callbacks<T> {

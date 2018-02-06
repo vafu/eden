@@ -46,7 +46,7 @@ internal interface DefaultRequestBuilder : RequestBuilder {
 
 typealias ResponseCallback = (ResponseInfo) -> Unit
 
-internal class NetworkRequestBuilder(private val resource: Resource<Any>,
+internal class NetworkRequestBuilder(private val resource: Resource<*>,
                                      private val requestProducer: () -> HTTPRequest) : DefaultRequestBuilder {
 
 
@@ -71,7 +71,7 @@ internal class NetworkRequestBuilder(private val resource: Resource<Any>,
     override fun repeated() = NetworkRequestBuilder(resource, requestProducer)
 
     private var requestInFlight: RequestInFlight? = null
-    override suspend fun start(): RequestInFlight? {
+    override fun start(): RequestInFlight? {
         when {
             requestInFlight != null -> {
                 debugLog(LogCategory.NETWORK_DETAILS, "$description already started")
@@ -105,6 +105,14 @@ internal class NetworkRequestBuilder(private val resource: Resource<Any>,
 
     }
 
+    private fun ignoreRequest(newRequest: EdenResponse) =
+            responseCallbacks.result?.response?.let {
+                if (!it.cancellation) {
+                    throw BugException("Received response for request that was already completed")
+                } else {
+                    newRequest.cancellation
+                }
+            } ?: false
 
     private fun parseResponse(response: HTTPResponse?, error: Throwable?) =
             when {
@@ -120,6 +128,8 @@ internal class NetworkRequestBuilder(private val resource: Resource<Any>,
                 }
                 else -> throw BugException("Both error and response are null for $description")
             }
+
+
 }
 
 
