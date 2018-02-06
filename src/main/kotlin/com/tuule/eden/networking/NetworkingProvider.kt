@@ -1,7 +1,9 @@
 package com.tuule.eden.networking
 
+import com.tuule.eden.networking.request.HTTPRequest
+
 interface NetworkingProvider {
-    fun performRequest(request: Request, callback: NetworkCompletionCallback): RequestInFlight
+    fun performRequest(httpRequest: HTTPRequest, callback: NetworkCompletionCallback): RequestInFlight
 }
 
 interface RequestInFlight {
@@ -14,5 +16,4 @@ data class RequestTransferMetrics(var requestBytesSent: Int,
                                   var responseBytesReceived: Int,
                                   var responseBytesTotal: Int?)
 
-
-typealias NetworkCompletionCallback = (Response?, Throwable?) -> Unit
+typealias NetworkCompletionCallback = (HTTPResponse?, Throwable?) -> Unit

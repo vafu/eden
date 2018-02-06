@@ -8,7 +8,6 @@ fun main(args: Array<String>) {
     val resourceService = ResourceService("http://google.com", OkhttpNetworkProvider())
 
     val index = resourceService.resource<String>("/")
-    index.load()
 
     readLine()
 }

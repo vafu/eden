@@ -1,7 +1,7 @@
 package com.tuule.eden.resource
 
 import com.tuule.eden.multiplatform.now
-import com.tuule.eden.networking.Response
+import com.tuule.eden.networking.HTTPResponse
 
 data class Entity<T>(val content: T,
                      private val _headers: Map<String, String>,
@@ -12,7 +12,7 @@ data class Entity<T>(val content: T,
                 headers: Map<String, String>) : this(data, headers.toMutableMap()
             .also { it["content-type"] = contentType })
 
-    constructor(response: Response, data: T) : this(data, response.headers)
+    constructor(httpResponse: HTTPResponse, data: T) : this(data, httpResponse.headers)
 
 
     var headers: Map<String, String> = _headers.normalizeKeys()
