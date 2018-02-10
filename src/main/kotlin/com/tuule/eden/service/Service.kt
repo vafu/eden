@@ -16,20 +16,19 @@ open class ResourceService(baseUrl: String? = null,
 
     //<editor-fold desc="resource creation">
 
-    fun <T> resourceFromAbsoluteURL(absoluteURL: String): Resource<T> =
+    fun <T : Any> resourceFromAbsoluteURL(absoluteURL: String): Resource<T> =
             absoluteURL.asValidUrl().let {
                 (cache.getOrPut(it) { Resource<T>(this, it) } as? Resource<T>)
                         ?: throw RuntimeException("Already have a resource with different content type")
             }
 
-    fun <T> resource(baseUrl: String, path: String) =
+    fun <T : Any> resource(baseUrl: String, path: String) =
             resourceFromAbsoluteURL<T>(baseUrl.addPath(path))
 
-    fun <T> resource(path: String): Resource<T> =
+    fun <T : Any> resource(path: String): Resource<T> =
             baseUrl?.let { resource<T>(it, path) }
                     ?: throw RuntimeException("Cannot create resource from path. Service does not have base url")
 
     //</editor-fold>
-
 
 }

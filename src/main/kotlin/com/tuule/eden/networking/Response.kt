@@ -13,7 +13,7 @@ sealed class EdenResponse {
     class Failure(val error: Throwable) : EdenResponse()
 
     val cancellation
-        get() = (this as Failure).error is RequestError.Cause.RequestCanceled
+        get() = (this as? Failure)?.error is RequestError.Cause.RequestCanceled
 }
 
 data class ResponseInfo(val response: EdenResponse, val isNew: Boolean = true) {

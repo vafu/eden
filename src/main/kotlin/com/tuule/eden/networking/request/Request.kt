@@ -34,27 +34,28 @@ internal interface RequestBuilder {
     fun onNotModified(callback: () -> Unit)
 
     fun repeated(): RequestBuilder?
-    fun start(): RequestInFlight?
+    fun cancel()
+    fun start()
 }
 
-internal class Callbacks<T> {
-    var result: T? = null
-        private set
-
-    private val callbacks = mutableSetOf<(T) -> Unit>()
-
-    fun addCallback(callback: (T) -> Unit) {
-        result?.let { async { callback(it) } } ?: callbacks.add(callback)
-    }
-
-    fun notify(value: T) {
-        callbacks.forEach { it(value) }
-    }
-
-    fun notifyOfCompletion(value: T) {
-        result = value
-        async {
-            notify(value)
-        }.invokeOnCompletion { callbacks.clear() }
-    }
-}
+//internal class Callbacks<T> {
+//    var result: T? = null
+//        private set
+//
+//    private val callbacks = mutableSetOf<(T) -> Unit>()
+//
+//    fun addCallback(callback: (T) -> Unit) {
+//        result?.let { async { callback(it) } } ?: callbacks.add(callback)
+//    }
+//
+//    fun notify(value: T) {
+//        callbacks.forEach { it(value) }
+//    }
+//
+//    fun notifyOfCompletion(value: T) {
+//        result = value
+//        async {
+//            notify(value)
+//        }.invokeOnCompletion { callbacks.clear() }
+//    }
+//}

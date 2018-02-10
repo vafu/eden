@@ -3,7 +3,8 @@ package com.tuule.eden.networking
 import com.tuule.eden.networking.request.HTTPRequest
 
 interface NetworkingProvider {
-    fun performRequest(httpRequest: HTTPRequest, callback: NetworkCompletionCallback): RequestInFlight
+    fun startRequest(httpRequest: HTTPRequest,
+                     callback: NetworkCompletionCallback): RequestInFlight
 }
 
 interface RequestInFlight {

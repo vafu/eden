@@ -10,7 +10,7 @@ import java.io.IOException
 
 class OkhttpNetworkProvider(private val client: OkHttpClient = OkHttpClient()) : NetworkingProvider {
 
-    override fun performRequest(httpRequest: HTTPRequest, callback: NetworkCompletionCallback): RequestInFlight =
+    override fun startRequest(httpRequest: HTTPRequest, callback: NetworkCompletionCallback): RequestInFlight =
             client.newCall(httpRequest.toOkHttpRequest())
                     .apply { enqueue({ callback(it.toEdenResponse(), null) }, { callback(null, it) }) }
                     .let(::OkRequestInFlight)

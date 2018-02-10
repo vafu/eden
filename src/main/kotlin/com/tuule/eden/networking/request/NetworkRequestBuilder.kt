@@ -8,6 +8,7 @@ import com.tuule.eden.networking.RequestInFlight
 import com.tuule.eden.networking.ResponseInfo
 import com.tuule.eden.resource.Entity
 import com.tuule.eden.resource.Resource
+import com.tuule.eden.util.debugLogWithValue
 import com.tuule.eden.util.exceptions.BugException
 import kotlinx.coroutines.experimental.async
 
@@ -21,9 +22,7 @@ internal interface DefaultRequestBuilder : RequestBuilder {
         }
     }
 
-
     override fun onCompletion(callback: (ResponseInfo) -> Unit) = addResponseCallback(callback)
-
 
     override fun onNewData(callback: (Entity<Any>) -> Unit) = addResponseCallback { info ->
         (info.response as? EdenResponse.Success)
@@ -46,6 +45,13 @@ internal interface DefaultRequestBuilder : RequestBuilder {
 
 typealias ResponseCallback = (ResponseInfo) -> Unit
 
+private sealed class NetworkRequestStatus {
+    class InFlight(val requestInFlight: RequestInFlight) : NetworkRequestStatus()
+    class Finished(val responseInfo: ResponseInfo) : NetworkRequestStatus()
+    object Canceled : NetworkRequestStatus()
+    object NotStarted : NetworkRequestStatus()
+}
+
 internal class NetworkRequestBuilder(private val resource: Resource<*>,
                                      private val requestProducer: () -> HTTPRequest) : DefaultRequestBuilder {
 
@@ -55,64 +61,61 @@ internal class NetworkRequestBuilder(private val resource: Resource<*>,
     private val description = "${httpRequest.method} → ${httpRequest.url}"
     private val headersDescr = "\nHeaders: ${httpRequest.headers}"
 
-    private var wasCancelled = false
+    private var status: NetworkRequestStatus = NetworkRequestStatus.NotStarted
 
-//    val isCompleted: Boolean
-//        get() =
-//            responseCallbacks.completedValue != nil
-
-
-    private val responseCallbacks = Callbacks<ResponseInfo>()
-
+    private val responseCallbacks = mutableSetOf<ResponseCallback>()
     override fun addResponseCallback(callback: ResponseCallback) {
-        responseCallbacks.addCallback(callback)
+        responseCallbacks.add(callback)
     }
 
-    override fun repeated() = NetworkRequestBuilder(resource, requestProducer)
+    override fun start() {
+        when (status) {
+            is NetworkRequestStatus.InFlight ->
+                debugLog(LogCategory.NETWORK, "$description is already started")
 
-    private var requestInFlight: RequestInFlight? = null
-    override fun start(): RequestInFlight? {
-        when {
-            requestInFlight != null -> {
-                debugLog(LogCategory.NETWORK_DETAILS, "$description already started")
-                return null
-            }
+            is NetworkRequestStatus.Finished ->
+                debugLog(LogCategory.NETWORK, "$description is already finished")
 
-            wasCancelled -> {
-                debugLog(LogCategory.NETWORK, "$description won't start because it was canceled")
-                return null
+            NetworkRequestStatus.Canceled ->
+                debugLog(LogCategory.NETWORK, "$description was canceled")
+
+            NetworkRequestStatus.NotStarted -> {
+                debugLog(LogCategory.NETWORK, description)
+                debugLog(LogCategory.NETWORK_DETAILS, headersDescr)
+
+                resource.service.networkingProvider.startRequest(httpRequest, ::responseReceived)
+                        .also { status = NetworkRequestStatus.InFlight(it) }
             }
         }
-
-        debugLog(LogCategory.NETWORK, description)
-        debugLog(LogCategory.NETWORK_DETAILS, headersDescr)
-
-        async {
-            resource.service.networkingProvider.performRequest(httpRequest, ::responseReceived)
-        }
-
-        return requestInFlight
     }
+
+    override fun cancel() =
+            (status as? NetworkRequestStatus.InFlight)?.requestInFlight?.cancel()
+                    ?: debugLog(LogCategory.NETWORK_DETAILS, "unable to cancel request, status is $status")
 
 
     private fun responseReceived(response: HTTPResponse?, error: Throwable?) {
-        debugLog(LogCategory.NETWORK, "Response: ${response?.code ?: error?.message}")
-        debugLog(LogCategory.NETWORK_DETAILS, "Raw response headers: ${response?.headers}")
-        debugLog(LogCategory.NETWORK_DETAILS, "Raw response body: ${response?.body?.size} bytes")
+        async {
+            debugLog(LogCategory.NETWORK, "Response: ${response?.code ?: error?.message}")
+            debugLog(LogCategory.NETWORK_DETAILS, "Raw response headers: ${response?.headers}")
+            debugLog(LogCategory.NETWORK_DETAILS, "Raw response body: ${response?.body?.size} bytes")
 
-        parseResponse(response, error)
+            parseResponse(response, error)
+                    .takeUnless(::shouldSkipResponse)
+                    ?.also(::transformResponse)
+                    ?.also(::broadcastResponse)
 
-
+        }
     }
 
-    private fun ignoreRequest(newRequest: EdenResponse) =
-            responseCallbacks.result?.response?.let {
-                if (!it.cancellation) {
-                    throw BugException("Received response for request that was already completed")
-                } else {
-                    newRequest.cancellation
-                }
-            } ?: false
+    private fun shouldSkipResponse(respInfo: ResponseInfo) =
+            when (status) {
+                NetworkRequestStatus.Canceled -> debugLogWithValue(LogCategory.NETWORK_DETAILS,
+                        "Received response, but request was already canceled:" +
+                                " $description\nNewResponse: ${respInfo.response}") { true }
+                is NetworkRequestStatus.Finished -> throw BugException("Received response for request that was already completed")
+                else -> respInfo.response.cancellation
+            }
 
     private fun parseResponse(response: HTTPResponse?, error: Throwable?) =
             when {
@@ -129,7 +132,19 @@ internal class NetworkRequestBuilder(private val resource: Resource<*>,
                 else -> throw BugException("Both error and response are null for $description")
             }
 
+    private fun transformResponse(response: ResponseInfo) {
+        status = NetworkRequestStatus.Finished(response)
+    }
 
+    private fun broadcastResponse(response: ResponseInfo) {
+        response.also { validResponse ->
+            async {
+                responseCallbacks.forEach { it(validResponse) }
+            }
+        }
+    }
+
+    override fun repeated() = NetworkRequestBuilder(resource, requestProducer)
 }
 
 
