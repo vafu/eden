@@ -1,12 +1,13 @@
 package com.tuule.eden.pipeline
 
 import com.tuule.eden.networking.EdenResponse
+import com.tuule.eden.resource.EntityCache
 
 class Pipeline {
 
     private val stages = mutableMapOf<StageKey, PipelineStage>()
 
-    operator fun get(key: StageKey) = stages[key]
+    operator fun get(key: StageKey) = stages.getOrPut(key, ::PipelineStage)
     operator fun set(key: StageKey, value: PipelineStage) {
         stages[key] = value
     }
@@ -18,13 +19,13 @@ class Pipeline {
         DECODING,
         PARSING,
         MODEL,
+        CACHING,
         CLEANUP
     }
 }
 
 class PipelineStage {
     private val transformers = mutableSetOf<ResponseTransformer>()
-
 
     fun add(responseTransformer: ResponseTransformer) {
         transformers.add(responseTransformer)
@@ -34,9 +35,14 @@ class PipelineStage {
         transformers.clear()
     }
 
-    internal fun processs(response: EdenResponse) {
-        transformers.fold(response) { acc, func -> func.transform(acc) }
-    }
+    internal val isActive
+        get() = caching || transformers.isNotEmpty()
 
+    var cache: EntityCache<*>? = null
+
+    val caching
+        get() = cache != null
+
+    internal fun process(response: EdenResponse) =
+            transformers.fold(response) { acc, func -> func.transform(acc) }
 }
-

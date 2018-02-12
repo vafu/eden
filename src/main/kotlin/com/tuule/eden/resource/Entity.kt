@@ -4,12 +4,12 @@ import com.tuule.eden.multiplatform.now
 import com.tuule.eden.networking.HTTPResponse
 
 data class Entity<out T>(val content: T,
-                     private val _headers: Map<String, String>,
-                     val timestamp: Long = now()) {
+                         private val _headers: Map<String, String>,
+                         val timestamp: Long = now()) {
 
     constructor(data: T,
                 contentType: String,
-                headers: Map<String, String>) : this(data, headers.toMutableMap()
+                headers: Map<String, String> = emptyMap()) : this(data, headers.toMutableMap()
             .also { it["content-type"] = contentType })
 
     constructor(httpResponse: HTTPResponse, data: T) : this(data, httpResponse.headers)
@@ -27,6 +27,8 @@ data class Entity<out T>(val content: T,
 
     val etag: String?
         get() = headers["etag"]
+
+    fun touch() = copy(timestamp = now())
 
     inline fun <R> map(map: (Entity<T>) -> R) = map(this).let { Entity(it, headers, timestamp) }
     fun <R> retype() = (content as? R)?.let { Entity(it, headers, timestamp) }
