@@ -1,7 +1,6 @@
 package com.tuule.eden.pipeline
 
 import com.tuule.eden.networking.EdenResponse
-import com.tuule.eden.resource.EntityCache
 
 class Pipeline {
 
@@ -19,7 +18,6 @@ class Pipeline {
         DECODING,
         PARSING,
         MODEL,
-        CACHING,
         CLEANUP
     }
 }
@@ -36,12 +34,7 @@ class PipelineStage {
     }
 
     internal val isActive
-        get() = caching || transformers.isNotEmpty()
-
-    var cache: EntityCache<*>? = null
-
-    val caching
-        get() = cache != null
+        get() = transformers.isNotEmpty()
 
     internal fun process(response: EdenResponse) =
             transformers.fold(response) { acc, func -> func.transform(acc) }

@@ -3,16 +3,27 @@ package com.tuule.eden.service
 import com.tuule.eden.multiplatform.*
 import com.tuule.eden.networking.NetworkingProvider
 import com.tuule.eden.resource.Resource
+import com.tuule.eden.resource.configuration.ConfigMutatorsBuilder
+import com.tuule.eden.resource.configuration.addHeader
+import com.tuule.eden.resource.configuration.configuration
+import com.tuule.eden.resource.configuration.matchesUrl
 import com.tuule.eden.util.addPath
 import com.tuule.eden.util.asValidUrl
 
 open class ResourceService(baseUrl: String? = null,
                            internal val networkingProvider: NetworkingProvider) {
 
+    open val configBuilder: ConfigMutatorsBuilder =
+            configuration {
+                matchesUrl("*/api") {
+                    addMutator { addHeader("Auth", "sometoken") }
+                }
+            }
+
     //todo multiplatform
     private val cache: WeakCache<String, Resource<*>> = WeakCacheJVM()
 
-    val baseUrl: String? = baseUrl?.asValidUrl()
+    private val baseUrl: String? = baseUrl?.asValidUrl()
 
     //<editor-fold desc="resource creation">
 
@@ -32,3 +43,4 @@ open class ResourceService(baseUrl: String? = null,
     //</editor-fold>
 
 }
+

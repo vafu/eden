@@ -20,12 +20,6 @@ enum class RequestMethod {
     DELETE
 }
 
-typealias RequestMutation = (HTTPRequest) -> Unit
-typealias RequestDecoration<T> = (HTTPRequest, Resource<T>) -> Unit
-//    fun addMutation(mutation: RequestMutation)
-//    fun addDecoration(decoration: RequestDecoration<Any>)
-
-
 internal interface RequestBuilder {
     fun onSuccess(callback: (Entity<Any>) -> Unit)
     fun onFailure(callback: () -> Unit)
@@ -37,25 +31,3 @@ internal interface RequestBuilder {
     fun cancel()
     fun start()
 }
-
-//internal class Callbacks<T> {
-//    var result: T? = null
-//        private set
-//
-//    private val callbacks = mutableSetOf<(T) -> Unit>()
-//
-//    fun addCallback(callback: (T) -> Unit) {
-//        result?.let { async { callback(it) } } ?: callbacks.add(callback)
-//    }
-//
-//    fun notify(value: T) {
-//        callbacks.forEach { it(value) }
-//    }
-//
-//    fun notifyOfCompletion(value: T) {
-//        result = value
-//        async {
-//            notify(value)
-//        }.invokeOnCompletion { callbacks.clear() }
-//    }
-//}
