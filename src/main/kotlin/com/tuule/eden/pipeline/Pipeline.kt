@@ -1,6 +1,7 @@
 package com.tuule.eden.pipeline
 
 import com.tuule.eden.networking.EdenResponse
+import com.tuule.eden.networking.ResponseInfo
 
 class Pipeline {
 
@@ -27,6 +28,13 @@ class PipelineStage {
 
     fun add(responseTransformer: ResponseTransformer) {
         transformers.add(responseTransformer)
+    }
+
+    fun add(transformation: (EdenResponse) -> EdenResponse) {
+        transformers.add(object : ResponseTransformer {
+            override fun transform(edenResponse: EdenResponse) =
+                    transformation(edenResponse)
+        })
     }
 
     fun clear() {

@@ -11,11 +11,14 @@ private val Pipeline.activeStages
             .filter(PipelineStage::isActive)
 
 
-private fun <T : Any> Pipeline.processAndCache(response: EdenResponse, resource: Resource<T>) {
-    activeStages
-            .fold(response) { acc, stage -> stage.process(acc) }
-            .let(resource::cacheResponseAsync)
-}
+internal fun <T : Any> Pipeline.processAndCache(response: EdenResponse, resource: Resource<T>) =
+        activeStages
+                .fold(response) { acc, stage ->
+                    stage.process(acc)
+                            .also { debugLog(LogCategory.PIPELINE, " ├╴ $it on stage $stage") }
+                }
+                .also { debugLog(LogCategory.PIPELINE, " └╴Response after pipeline: $it") }
+                .apply(resource::cacheResponseAsync)
 
 private fun <T : Any> Resource<T>.cacheResponseAsync(response: EdenResponse) {
     if (response is EdenResponse.Success) {

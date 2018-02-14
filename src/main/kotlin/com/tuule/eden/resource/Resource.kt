@@ -14,20 +14,18 @@ open class Resource<T : Any>(val service: ResourceService,
 
     protected open val config = configuration { }
 
-    private val _configuration by lazy {
-        config.asSingleMutator()(service.configBuilder.buildForResource(this))
+    internal val _configuration by lazy {
+        config.asSingleMutator().invoke(service.configBuilder(this))
     }
 
     var data: Entity<T>? = null
 
     fun <T : Any> child(path: String) = service.resourceFromAbsoluteURL<T>(url.addPath(path))
 
-    fun request() =
+    internal fun request() =
             NetworkRequestBuilder(this) {
                 HTTPRequest(url)
-            }.apply {
-                onSuccess { debugLog(LogCategory.NETWORK, "success") }
-            }.start()
+            }
 
 
     //<editor-fold desc="cache">
@@ -39,7 +37,10 @@ open class Resource<T : Any>(val service: ResourceService,
 
     internal fun cacheEntityAsync(entity: Entity<T>) = async {
         (_configuration.cache as? EntityCache<T>)
-                ?.let { it[this@Resource] = entity }
+                ?.let {
+                    debugLog(LogCategory.CACHE, "caching $entity")
+                    it[this@Resource] = entity
+                }
     }
     //</editor-fold>
 

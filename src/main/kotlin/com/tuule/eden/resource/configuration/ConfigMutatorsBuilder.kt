@@ -1,20 +1,24 @@
 package com.tuule.eden.resource.configuration
 
 import com.tuule.eden.resource.Resource
+import kotlinx.coroutines.experimental.async
+import kotlinx.coroutines.experimental.delay
+import kotlinx.coroutines.experimental.launch
 
 typealias ConfigurationMutator = ResourceConfiguration.() -> ResourceConfiguration
 typealias ConfigurationMatcher = (Resource<*>) -> Boolean
 
 private val allMatcher: ConfigurationMatcher = { true }
 
-class ConfigMutatorsBuilder : ConfigMutators() {
+class ConfigMutatorsBuilder(val resource: Resource<*>) : ConfigMutators() {
+
     private val matchers = mutableMapOf<ConfigurationMatcher, ConfigurationMutator>()
 
     fun addForMatcher(matcher: ConfigurationMatcher, mutator: ConfigurationMutator) {
         matchers.put(matcher, mutator)
     }
 
-    fun buildForResource(resource: Resource<*>) =
+    fun build() =
             matchers
                     .apply { put(allMatcher, asSingleMutator()) }
                     .filterKeys { it(resource) }.values

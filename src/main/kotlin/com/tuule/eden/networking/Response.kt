@@ -9,11 +9,17 @@ class HTTPResponse(val body: ByteArray?,
                    val message: String?)
 
 sealed class EdenResponse {
-    class Success(val entity: Entity<Any>) : EdenResponse()
-    class Failure(val error: Throwable) : EdenResponse()
+    class Success(val entity: Entity<Any>) : EdenResponse() {
+        override fun toString() = "Success with $entity"
+    }
+
+    class Failure(val error: Throwable) : EdenResponse() {
+        override fun toString() = "Failed with ${error.message}"
+    }
 
     val cancellation
         get() = (this as? Failure)?.error is RequestError.Cause.RequestCanceled
+
 }
 
 data class ResponseInfo(val response: EdenResponse, val isNew: Boolean = true) {
@@ -21,3 +27,5 @@ data class ResponseInfo(val response: EdenResponse, val isNew: Boolean = true) {
         internal val cancelation = ResponseInfo(EdenResponse.Failure(RequestError.Cause.RequestCanceled()))
     }
 }
+
+fun EdenResponse.asSuccess() = this as? EdenResponse.Success

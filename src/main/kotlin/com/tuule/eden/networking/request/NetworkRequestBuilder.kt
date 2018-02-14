@@ -6,6 +6,7 @@ import com.tuule.eden.networking.EdenResponse
 import com.tuule.eden.networking.HTTPResponse
 import com.tuule.eden.networking.RequestInFlight
 import com.tuule.eden.networking.ResponseInfo
+import com.tuule.eden.pipeline.processAndCache
 import com.tuule.eden.resource.Entity
 import com.tuule.eden.resource.Resource
 import com.tuule.eden.util.debugLogWithValue
@@ -102,7 +103,7 @@ internal class NetworkRequestBuilder(private val resource: Resource<*>,
 
             parseResponse(response, error)
                     .takeUnless(::shouldSkipResponse)
-                    ?.also(::transformResponse)
+                    ?.let(::transformResponse)
                     ?.also(::broadcastResponse)
 
         }
@@ -132,11 +133,15 @@ internal class NetworkRequestBuilder(private val resource: Resource<*>,
                 else -> throw BugException("Both error and response are null for $description")
             }
 
-    private fun transformResponse(response: ResponseInfo) {
-        status = NetworkRequestStatus.Finished(response)
-    }
+    private fun transformResponse(response: ResponseInfo) =
+            response.takeIf { it.isNew }
+                    ?.let { resource._configuration.pipeline.processAndCache(it.response, resource) }
+                    ?.let { ResponseInfo(it, true) }
+                    ?: response
+
 
     private fun broadcastResponse(response: ResponseInfo) {
+        status = NetworkRequestStatus.Finished(response)
         response.also { validResponse ->
             async {
                 responseCallbacks.forEach { it(validResponse) }

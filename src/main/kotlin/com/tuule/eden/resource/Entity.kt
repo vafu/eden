@@ -14,7 +14,6 @@ data class Entity<out T>(val content: T,
 
     constructor(httpResponse: HTTPResponse, data: T) : this(data, httpResponse.headers)
 
-
     var headers: Map<String, String> = _headers.normalizeKeys()
         private set(value) {
             field = value.normalizeKeys()
@@ -32,6 +31,7 @@ data class Entity<out T>(val content: T,
 
     inline fun <R> map(map: (Entity<T>) -> R) = map(this).let { Entity(it, headers, timestamp) }
     fun <R> retype() = (content as? R)?.let { Entity(it, headers, timestamp) }
+
 }
 
 private fun Map<String, String>.normalizeKeys() = mapKeys { it.key.toLowerCase() }

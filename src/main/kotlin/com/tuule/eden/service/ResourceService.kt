@@ -1,31 +1,37 @@
 package com.tuule.eden.service
 
 import com.tuule.eden.multiplatform.*
+import com.tuule.eden.networking.EdenResponse
 import com.tuule.eden.networking.NetworkingProvider
+import com.tuule.eden.networking.asSuccess
+import com.tuule.eden.networking.request.RequestError
+import com.tuule.eden.pipeline.Pipeline
+import com.tuule.eden.pipeline.getTransformer
 import com.tuule.eden.resource.Resource
-import com.tuule.eden.resource.configuration.ConfigMutatorsBuilder
-import com.tuule.eden.resource.configuration.addHeader
-import com.tuule.eden.resource.configuration.configuration
-import com.tuule.eden.resource.configuration.matchesUrl
+import com.tuule.eden.resource.configuration.*
 import com.tuule.eden.util.addPath
 import com.tuule.eden.util.asValidUrl
+import java.nio.charset.Charset
 
 open class ResourceService(baseUrl: String? = null,
                            internal val networkingProvider: NetworkingProvider) {
 
-    open val configBuilder: ConfigMutatorsBuilder =
-            configuration {
-                matchesUrl("*/api") {
-                    addMutator { addHeader("Auth", "sometoken") }
+    open val configBuilder =
+            configuration { resource ->
+
+                pipeline {
+
+                    get(Pipeline.StageKey.MODEL).add(resource.getTransformer())
                 }
             }
+
 
     //todo multiplatform
     private val cache: WeakCache<String, Resource<*>> = WeakCacheJVM()
 
     private val baseUrl: String? = baseUrl?.asValidUrl()
 
-    //<editor-fold desc="resource creation">
+//<editor-fold desc="resource creation">
 
     fun <T : Any> resourceFromAbsoluteURL(absoluteURL: String): Resource<T> =
             absoluteURL.asValidUrl().let {
@@ -40,7 +46,7 @@ open class ResourceService(baseUrl: String? = null,
             baseUrl?.let { resource<T>(it, path) }
                     ?: throw RuntimeException("Cannot create resource from path. Service does not have base url")
 
-    //</editor-fold>
+//</editor-fold>
 
 }
 
