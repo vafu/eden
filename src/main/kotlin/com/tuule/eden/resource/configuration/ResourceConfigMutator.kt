@@ -1,26 +1,26 @@
 package com.tuule.eden.resource.configuration
 
 import com.tuule.eden.resource.Resource
-import kotlinx.coroutines.experimental.async
-import kotlinx.coroutines.experimental.delay
-import kotlinx.coroutines.experimental.launch
 
 typealias ConfigurationMutator = ResourceConfiguration.() -> ResourceConfiguration
-typealias ConfigurationMatcher = (Resource<*>) -> Boolean
+typealias ResourceMatcher<T> = (Resource<T>) -> Boolean
 
-private val allMatcher: ConfigurationMatcher = { true }
+private val anyResourceMatcher: ResourceMatcher<*> = { true }
 
-class ConfigMutatorsBuilder(val resource: Resource<*>) : ConfigMutators() {
+class ConfigMutatorsBuilder<T : Any>(val resource: Resource<T>) : ConfigMutators() {
 
-    private val matchers = mutableMapOf<ConfigurationMatcher, ConfigurationMutator>()
+    private val matchers = mutableMapOf<ResourceMatcher<T>, ConfigurationMutator>()
 
-    fun addForMatcher(matcher: ConfigurationMatcher, mutator: ConfigurationMutator) {
+    fun addForMatcher(matcher: ResourceMatcher<T>, mutator: ConfigurationMutator) {
         matchers.put(matcher, mutator)
     }
 
     fun build() =
             matchers
-                    .apply { put(allMatcher, asSingleMutator()) }
+                    .apply {
+                        put(anyResourceMatcher,
+                                this@ConfigMutatorsBuilder.reduce())
+                    }
                     .filterKeys { it(resource) }.values
                     .fold(ResourceConfiguration()) { acc, mutator -> mutator(acc) }
 }
@@ -32,7 +32,7 @@ open class ConfigMutators {
         mutations.add(mutator)
     }
 
-    internal fun asSingleMutator(): ConfigurationMutator = {
+    internal fun reduce(): ConfigurationMutator = {
         mutations.foldRight(this) { acc, result -> acc(result) }
     }
 }
