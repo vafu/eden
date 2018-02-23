@@ -9,7 +9,7 @@ enum class LogCategory(val title: String) {
     OBSERVERS("Observers"),
     STALENESS("Staleness"),
     CACHE("Caching"),
-    CONFIGURATION("ConfigMutators")
+    CONFIGURATION("ConfigurationBuilder")
 }
 
 

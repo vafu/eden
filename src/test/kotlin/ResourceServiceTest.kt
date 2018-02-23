@@ -27,7 +27,7 @@ class ResourceServiceTest : Spek({
                 assertNotNull(resource)
             }
 
-            it("throws error when invalid absolute path ") {
+            it("throws ERROR when invalid absolute path ") {
                 assertFails {
                     service.resourceFromAbsoluteURL<Any>(invalidUrl)
                 }
@@ -38,7 +38,7 @@ class ResourceServiceTest : Spek({
                 assertNotNull(resource)
             }
 
-            it("should throw error with invalid relative path") {
+            it("should throw ERROR with invalid relative path") {
                 assertFails {
                     service.resource<Any>(invalidPath)
                 }
@@ -49,7 +49,7 @@ class ResourceServiceTest : Spek({
                 assertNotNull(resource)
             }
 
-            it("should throw error with invalid absolute/relative url/path") {
+            it("should throw ERROR with invalid absolute/relative url/path") {
                 assertFails {
                     service.resource<Any>(invalidUrl, validPath)
                 }

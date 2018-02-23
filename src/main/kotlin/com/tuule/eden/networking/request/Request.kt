@@ -1,12 +1,9 @@
 package com.tuule.eden.networking.request
 
-import com.tuule.eden.networking.RequestInFlight
 import com.tuule.eden.networking.ResponseInfo
 import com.tuule.eden.resource.Entity
-import com.tuule.eden.resource.Resource
-import kotlinx.coroutines.experimental.async
 
-class HTTPRequest(val url: String,
+data class HTTPRequest(val url: String,
                   val method: RequestMethod = RequestMethod.GET,
                   val headers: Map<String, String> = emptyMap(),
                   val body: ByteArray? = null)
@@ -20,14 +17,15 @@ enum class RequestMethod {
     DELETE
 }
 
-internal interface RequestBuilder {
-    fun onSuccess(callback: (Entity<Any>) -> Unit)
-    fun onFailure(callback: () -> Unit)
-    fun onCompletion(callback: (ResponseInfo) -> Unit)
-    fun onNewData(callback: (Entity<Any>) -> Unit)
-    fun onNotModified(callback: () -> Unit)
+interface Request {
+    fun onSuccess(callback: (Entity<Any>) -> Unit) : Request
+    fun onFailure(callback: () -> Unit) : Request
+    fun onCompletion(callback: (ResponseInfo) -> Unit) : Request
+    fun onNewData(callback: (Entity<Any>) -> Unit): Request
+    fun onNotModified(callback: () -> Unit): Request
 
-    fun repeated(): RequestBuilder?
+    val isCompleted: Boolean
+    fun repeated(): Request?
     fun cancel()
-    fun start()
+    fun start(): Request
 }

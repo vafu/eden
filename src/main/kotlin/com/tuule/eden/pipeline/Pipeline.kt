@@ -12,7 +12,7 @@ class Pipeline {
         stages[key] = value
     }
 
-    fun removeAllTransformers() = stages.forEach { _, u -> u.clear() }
+    fun clear() = stages.forEach { _, u -> u.clear() }
 
     enum class StageKey {
         RAW_DATA,
@@ -30,13 +30,6 @@ class PipelineStage {
         transformers.add(responseTransformer)
     }
 
-    fun add(transformation: (EdenResponse) -> EdenResponse) {
-        transformers.add(object : ResponseTransformer {
-            override fun transform(edenResponse: EdenResponse) =
-                    transformation(edenResponse)
-        })
-    }
-
     fun clear() {
         transformers.clear()
     }
@@ -47,3 +40,13 @@ class PipelineStage {
     internal fun process(response: EdenResponse) =
             transformers.fold(response) { acc, func -> func.transform(acc) }
 }
+
+inline fun PipelineStage.add(crossinline transformation: (EdenResponse) -> EdenResponse) {
+    add(object : ResponseTransformer {
+        override fun transform(edenResponse: EdenResponse) =
+                transformation(edenResponse)
+    })
+}
+
+
+data class Object<S>(val stringField: S)

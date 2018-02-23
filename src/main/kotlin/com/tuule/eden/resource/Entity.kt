@@ -29,7 +29,7 @@ data class Entity<out T>(val content: T,
 
     fun touch() = copy(timestamp = now())
 
-    inline fun <R> map(map: (Entity<T>) -> R) = map(this).let { Entity(it, headers, timestamp) }
+    inline fun <R> withEntity(map: (Entity<T>) -> R) = map(this).let { Entity(it, headers, timestamp) }
     fun <R> retype() = (content as? R)?.let { Entity(it, headers, timestamp) }
 
 }

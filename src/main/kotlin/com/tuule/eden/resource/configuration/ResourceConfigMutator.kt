@@ -2,38 +2,32 @@ package com.tuule.eden.resource.configuration
 
 import com.tuule.eden.resource.Resource
 
-typealias ConfigurationMutator = ResourceConfiguration.() -> ResourceConfiguration
-typealias ResourceMatcher<T> = (Resource<T>) -> Boolean
+//typealias ResourceMatcher<T> = (Resource<T>) -> Boolean
+//
+//class ResourceConfigMutator<T : Any>(val resource: Resource<T>) : ConfigurationBuilder() {
+//    fun addForMatcher(matcher: ResourceMatcher<T>, mutator: ConfigurationMutator) {
+//        if (matcher(resource))
+//            addMutator(mutator)
+//    }
+//}
+//
+//
+//open class ConfigurationBuilder {
+//    private val mutations = mutableListOf<ConfigurationMutator>()
+//
+//    fun addMutator(mutator: ConfigurationMutator) {
+//        mutations.add(mutator)
+//    }
+//
+//    internal fun fold(): ConfigurationMutator = { build(this) }
+//
+//    internal fun build(): Configuration =
+//            build(Configuration())
+//
+//    internal fun build(initial: Configuration) =
+//            mutations.fold(initial)
+//            { acc, mutator -> mutator(acc) }
+//}
+//
 
-private val anyResourceMatcher: ResourceMatcher<*> = { true }
-
-class ConfigMutatorsBuilder<T : Any>(val resource: Resource<T>) : ConfigMutators() {
-
-    private val matchers = mutableMapOf<ResourceMatcher<T>, ConfigurationMutator>()
-
-    fun addForMatcher(matcher: ResourceMatcher<T>, mutator: ConfigurationMutator) {
-        matchers.put(matcher, mutator)
-    }
-
-    fun build() =
-            matchers
-                    .apply {
-                        put(anyResourceMatcher,
-                                this@ConfigMutatorsBuilder.reduce())
-                    }
-                    .filterKeys { it(resource) }.values
-                    .fold(ResourceConfiguration()) { acc, mutator -> mutator(acc) }
-}
-
-open class ConfigMutators {
-    private val mutations = mutableListOf<ConfigurationMutator>()
-
-    fun addMutator(mutator: ConfigurationMutator) {
-        mutations.add(mutator)
-    }
-
-    internal fun reduce(): ConfigurationMutator = {
-        mutations.foldRight(this) { acc, result -> acc(result) }
-    }
-}
 
