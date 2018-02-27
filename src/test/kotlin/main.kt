@@ -11,22 +11,20 @@ import kotlinx.coroutines.experimental.runBlocking
 
 
 fun main(args: Array<String>) = runBlocking {
-    //    Logger.logLevel = LogLevel.Full
+    Logger.logLevel = LogLevel.Full
 
     val serv1 = ResourceService("http://192.168.88.101:3000/", OkhttpNetworkProvider())
-    val serv2 = ResourceService("http://192.168.88.101:3000/", OkhttpNetworkProvider())
 
 
-    val res1 = serv1.resource<String>("/error/404")
+    val res1 = serv1.resource<String>("/error")
 
     res1.load()
-
-
-
     delay(4000)
-    val res2 = serv1.resource<String>("/error/404")
+    res1.load()
     delay(4000)
-    println(res2.data)
+    serv1.invalidateConfigs()
+    res1.load()
+    delay(4000)
     Unit
 }
 

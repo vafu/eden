@@ -41,10 +41,6 @@ object Logger {
         "$prefix${message.replace("\n", "\n$prefix")}"
     }
 
-    //todo multiplatform
-    fun print(message: String) {
-        println(message)
-    }
 
     //todo multiplatform
     private fun getThreadName(): String =

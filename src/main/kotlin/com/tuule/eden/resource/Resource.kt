@@ -4,10 +4,11 @@ import com.tuule.eden.multiplatform.LogCategory
 import com.tuule.eden.multiplatform.debugLog
 import com.tuule.eden.multiplatform.now
 import com.tuule.eden.networking.request.*
+import com.tuule.eden.resource.configuration.Configuration
 import com.tuule.eden.resource.configuration.RequestMutation
 import com.tuule.eden.service.ResourceService
 import com.tuule.eden.util.addPath
-import com.tuule.eden.util.log
+import com.tuule.eden.util.debugLogWithValue
 import com.tuule.eden.util.mutate
 import kotlinx.coroutines.experimental.async
 import kotlin.math.max
@@ -17,15 +18,30 @@ open class Resource<T : Any>(val service: ResourceService,
 
     //<editor-fold desc="configuration">
 
-    internal val configuration by lazy { service.configuration(this, RequestMethod.GET) }
+    internal val configuration = service.configuration(this, RequestMethod.GET)
 
-    internal fun configuration(method: RequestMethod) =
-            service.configuration(this, method)
+    private val configurationCache = mutableMapOf<RequestMethod, Configuration>()
 
-    internal fun configuration(request: HTTPRequest) =
-            service.configuration(this, request.method)
+    private fun configuration(method: RequestMethod): Configuration =
+            configurationCache[method]
+                    ?.takeIf { isConfigurationValid }
+                    ?: service.configuration(this, method)
+                    .also {
+                        configurationCache[method] = it
+                        configVersion = service.configVersion
+                    }
+
+    private var configVersion = 0L
+
+    private val isConfigurationValid
+        get() = service.configVersion == configVersion
+
 
     //</editor-fold>
+
+    init {
+        loadDataFromCacheAsync()
+    }
 
     //<editor-fold desc="data">
     var invalidated = false
@@ -108,31 +124,32 @@ open class Resource<T : Any>(val service: ResourceService,
 
     //<editor-fold desc="cache">
 
-    private fun getCachedEntityAsync() = async {
-        (configuration.cache as? EntityCache<T>)
-                ?.let { it[this@Resource] }
-    }
+    private val entityCache
+        get() = (configuration.cache as? EntityCache<T>)
 
-    private fun removeCachedEntityAsync() = async {
-        (configuration.cache as? EntityCache<T>)
-                ?.let { it.remove(this@Resource) }
-    }
+    private fun getCachedEntityAsync() = async { entityCache?.get(this@Resource) }
+
+    private fun removeCachedEntityAsync() = async { entityCache?.remove(this@Resource) }
 
     internal fun cacheEntityAsync(entity: Entity<T>) = async {
-        (configuration.cache as? EntityCache<T>)
-                ?.let {
-                    debugLog(LogCategory.CACHE, "caching $entity")
-                    it[this@Resource] = entity
-                }
+        entityCache?.let {
+            debugLog(LogCategory.CACHE, "caching $entity")
+            it[this@Resource] = entity
+        }
     }
 
     private fun touchCacheEntriesAsync(timestamp: Long) = async {
-        (configuration.cache as? EntityCache<T>)
-                ?.let { it.touch(timestamp, this@Resource) }
+        entityCache?.touch(timestamp, this@Resource)
+    }
+
+    private fun loadDataFromCacheAsync() = async {
+        getCachedEntityAsync().await()
+                ?.let { processNewData(it, DataSource.CACHE) }
+                ?: debugLogWithValue(LogCategory.CACHE, "skipping cache load for ${this@Resource}") { null }
     }
     //</editor-fold>
 
-    fun <T : Any> child(path: String) = service.resourceFromAbsoluteURL<T>(url.addPath(path))
+    fun <R : Any> child(path: String) = service.resourceFromAbsoluteURL<R>(url.addPath(path))
 
 
     override fun toString() = url
@@ -148,9 +165,7 @@ open class Resource<T : Any>(val service: ResourceService,
     }
 }
 
-internal
-
-val Resource<*>.isUpToDate
+private val Resource<*>.isUpToDate
     get() = !invalidated && (now() - lastChanged <= retryTime)
 
 private val Resource<*>.lastChanged
