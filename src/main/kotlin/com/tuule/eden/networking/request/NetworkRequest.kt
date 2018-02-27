@@ -37,9 +37,9 @@ internal interface DefaultRequest : Request {
                 ?.let { callback() }
     }.let { this }
 
-    override fun onFailure(callback: () -> Unit) = addResponseCallback { info ->
+    override fun onFailure(callback: (RequestError) -> Unit) = addResponseCallback { info ->
         (info.response as? EdenResponse.Failure)
-                ?.let { callback() }
+                ?.let { callback(it.error) }
     }.let { this }
 }
 

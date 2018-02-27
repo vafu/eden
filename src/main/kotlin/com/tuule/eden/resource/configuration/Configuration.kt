@@ -11,7 +11,6 @@ data class Configuration(val expirationTime: Long = 30 * 1000,
                          val pipeline: Pipeline = Pipeline(),
                          val cache: EntityCache<*>? = null)
 
-
 typealias RequestMutation = (HTTPRequest) -> HTTPRequest
 
 fun Configuration.addHeader(key: String, value: String) =

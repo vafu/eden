@@ -5,8 +5,8 @@ import com.tuule.eden.networking.EdenResponse
 import com.tuule.eden.networking.HTTPResponse
 import com.tuule.eden.resource.Entity
 
-class RequestError(message: String?,
-                   cause: Cause?,
+class RequestError(message: String? = null,
+                   cause: Cause? = null,
                    val entity: Entity<Any>? = null) : Throwable(message, cause) {
 
     var httpStatusCode: Int? = null
@@ -29,7 +29,7 @@ class RequestError(message: String?,
         class NoLocalDataForNotModified : Cause("No local data available when got 304")
         class TypeMismatchError(response: EdenResponse) : Cause("Type mismatch while transforming $response")
         class DecodeError : Cause("Cannot decode given data")
-        class WrongInputTypeInTransformerPipeline : Cause("Cannot transform data")
+        class WrongInputTypeInTransformerPipeline : Cause("Wrong Input Type In Transformer Pipeline")
         class User(throwable: Throwable) : Cause(throwable.localizedMessage)
     }
 }

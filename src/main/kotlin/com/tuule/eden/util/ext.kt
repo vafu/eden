@@ -24,4 +24,6 @@ private fun String?.asCharset() =
             Charsets.UTF_8
         }
 
+internal fun <T> T.log(message: String? = null) = also { message?.let(::print); println(" $this") }
+
 fun <T> Iterable<(T) -> T>.mutate(initial: T) = fold(initial) { acc, mut -> mut(acc) }

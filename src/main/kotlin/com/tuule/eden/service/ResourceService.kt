@@ -10,13 +10,27 @@ import com.tuule.eden.resource.Resource
 import com.tuule.eden.multiplatform.LogCategory
 import com.tuule.eden.multiplatform.debugLog
 import com.tuule.eden.networking.request.RequestMethod
-import com.tuule.eden.pipeline.createGsonDecodingTransformer
-import com.tuule.eden.pipeline.getJsonTransformer
+import com.tuule.eden.resource.Entity
+import com.tuule.eden.resource.EntityCache
 import com.tuule.eden.resource.configuration.ConfigurationEntry
 import com.tuule.eden.resource.configuration.Configuration
 import com.tuule.eden.resource.configuration.ConfigurationMutator
 import com.tuule.eden.util.addPath
 import com.tuule.eden.util.asValidUrl
+
+object StringCache : EntityCache<String> {
+    private val _cache = hashMapOf<Resource<String>, Entity<String>>()
+
+    override fun get(resource: Resource<String>) = _cache[resource]
+    override fun set(resource: Resource<String>, value: Entity<String>) {
+        _cache[resource] = value
+    }
+
+    override fun remove(resource: Resource<String>) {
+        _cache.remove(resource)
+    }
+
+}
 
 open class ResourceService(baseUrl: String? = null,
                            internal val networkingProvider: NetworkingProvider) {
@@ -35,9 +49,8 @@ open class ResourceService(baseUrl: String? = null,
     init {
         configure { resource ->
             copy(pipeline = pipeline.apply {
-                get(Pipeline.StageKey.DECODING).add(createGsonDecodingTransformer(gson))
-                get(Pipeline.StageKey.MODEL).add(resource.getJsonTransformer(gson))
-            })
+                get(Pipeline.StageKey.DECODING).add(createTextDecodingTransformer())
+            }, cache = StringCache)
         }
     }
 
