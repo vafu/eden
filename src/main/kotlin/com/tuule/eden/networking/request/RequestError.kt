@@ -4,9 +4,10 @@ import com.tuule.eden.multiplatform.now
 import com.tuule.eden.networking.EdenResponse
 import com.tuule.eden.networking.HTTPResponse
 import com.tuule.eden.resource.Entity
+import com.tuule.eden.util.toByteArrayEntity
 
 class RequestError(message: String? = null,
-                   cause: Cause? = null,
+                   cause: Throwable? = null,
                    val entity: Entity<Any>? = null) : Throwable(message, cause) {
 
     var httpStatusCode: Int? = null
@@ -14,12 +15,11 @@ class RequestError(message: String? = null,
     val timestamp = now()
 
     constructor(httpResponse: HTTPResponse,
-                content: Any? = null,
-                cause: Cause? = null,
+                cause: Throwable? = null,
                 userMessage: String? = null) : this(
             userMessage ?: cause?.localizedMessage ?: httpResponse.message ?: "HTTPRequest failed for unknown reason",
             cause,
-            content?.let { Entity(httpResponse, content) }) {
+            httpResponse.toByteArrayEntity()) {
 
         httpStatusCode = httpResponse.code
     }
@@ -33,11 +33,3 @@ class RequestError(message: String? = null,
         class User(throwable: Throwable) : Cause(throwable.localizedMessage)
     }
 }
-
-
-internal fun RequestError.Cause.asFailure(entity: Entity<Any>? = null) =
-        EdenResponse.Failure(RequestError(message, this, entity))
-
-internal fun Throwable.asFailure(entity: Entity<Any>? = null) =
-        EdenResponse.Failure(RequestError(message, RequestError.Cause.User(this), entity))
-

@@ -1,4 +1,7 @@
+import com.tuule.eden.resource.child
 import com.tuule.eden.service.ResourceService
+import com.tuule.eden.service.resource
+import com.tuule.eden.service.resourceFromAbsoluteUrl
 import io.mockk.mockk
 import io.mockk.spyk
 import org.jetbrains.spek.api.Spek
@@ -23,13 +26,13 @@ class ResourceServiceTest : Spek({
 
         on("creating resources") {
             it("successfully creates resource when valid absolute path") {
-                val resource = service.resourceFromAbsoluteURL<Any>(validUrl)
+                val resource = service.resourceFromAbsoluteUrl<Any>(validUrl)
                 assertNotNull(resource)
             }
 
             it("throws ERROR when invalid absolute path ") {
                 assertFails {
-                    service.resourceFromAbsoluteURL<Any>(invalidUrl)
+                    service.resourceFromAbsoluteUrl<Any>(invalidUrl)
                 }
             }
 

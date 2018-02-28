@@ -6,44 +6,13 @@ import com.tuule.eden.networking.*
 import com.tuule.eden.pipeline.processAndCache
 import com.tuule.eden.resource.Entity
 import com.tuule.eden.resource.Resource
+import com.tuule.eden.util.asResponseInfo
 import com.tuule.eden.util.debugLogWithValue
 import com.tuule.eden.util.exceptions.BugException
+import com.tuule.eden.util.isError
+import com.tuule.eden.util.toByteArrayEntity
 import kotlinx.coroutines.experimental.async
 
-
-internal interface DefaultRequest : Request {
-    fun addResponseCallback(callback: (ResponseInfo) -> Unit)
-
-    override fun onSuccess(callback: (Entity<Any>) -> Unit) = addResponseCallback { info ->
-        (info.response as? EdenResponse.Success)?.let { response ->
-            callback(response.entity)
-        }
-    }.let { this }
-
-    override fun onCompletion(callback: (ResponseInfo) -> Unit) =
-            addResponseCallback(callback)
-                    .let { this }
-
-    override fun onNewData(callback: (Entity<Any>) -> Unit) = addResponseCallback { info ->
-        (info.response as? EdenResponse.Success)
-                ?.takeIf { info.isNew }
-                ?.entity
-                ?.let(callback)
-    }.let { this }
-
-    override fun onNotModified(callback: () -> Unit) = addResponseCallback { info ->
-        (info.response as? EdenResponse.Success)
-                ?.takeUnless { info.isNew }
-                ?.let { callback() }
-    }.let { this }
-
-    override fun onFailure(callback: (RequestError) -> Unit) = addResponseCallback { info ->
-        (info.response as? EdenResponse.Failure)
-                ?.let { callback(it.error) }
-    }.let { this }
-}
-
-typealias ResponseCallback = (ResponseInfo) -> Unit
 
 private sealed class NetworkRequestStatus {
     class InFlight(val requestInFlight: RequestInFlight) : NetworkRequestStatus()
@@ -123,12 +92,12 @@ internal class NetworkRequest(private val resource: Resource<*>,
 
     private fun parseResponse(response: HTTPResponse?, error: Throwable?) =
             when {
-                error != null -> error.toResponseInfo()
-                response?.isError() == true -> RequestError(response, cause = error).toResponseInfo()
+                error != null -> error.asResponseInfo()
+                response?.isError == true -> RequestError(response, cause = error).asResponseInfo()
                 response != null -> {
                     if (response.code == 304) {
                         resource.data?.let { ResponseInfo(EdenResponse.Success(it), false) }
-                                ?: RequestError.Cause.NoLocalDataForNotModified().toResponseInfo()
+                                ?: RequestError.Cause.NoLocalDataForNotModified().asResponseInfo()
                     } else {
                         ResponseInfo(EdenResponse.Success(response.toByteArrayEntity()))
                     }
@@ -155,15 +124,39 @@ internal class NetworkRequest(private val resource: Resource<*>,
     override fun repeated() = NetworkRequest(resource, requestProducer)
 }
 
-class TypedRequest<out T : Any>(resource: Resource<*>,
-                                requestProducer: () -> HTTPRequest) :
-        Request by NetworkRequest(resource, requestProducer) {
+typealias ResponseCallback = (ResponseInfo) -> Unit
 
-    fun onData(callback: (T) -> Unit) = onSuccess { e: Entity<Any> ->
-        (e.content as? T)?.let(callback)
-    }
+internal interface DefaultRequest : Request {
+    fun addResponseCallback(callback: (ResponseInfo) -> Unit)
+
+    override fun onSuccess(callback: (Entity<Any>) -> Unit) = addResponseCallback { info ->
+        (info.response as? EdenResponse.Success)?.let { response ->
+            callback(response.entity)
+        }
+    }.let { this }
+
+    override fun onCompletion(callback: (ResponseInfo) -> Unit) =
+            addResponseCallback(callback)
+                    .let { this }
+
+    override fun onNewData(callback: (Entity<Any>) -> Unit) = addResponseCallback { info ->
+        (info.response as? EdenResponse.Success)
+                ?.takeIf { info.isNew }
+                ?.entity
+                ?.let(callback)
+    }.let { this }
+
+    override fun onNotModified(callback: () -> Unit) = addResponseCallback { info ->
+        (info.response as? EdenResponse.Success)
+                ?.takeUnless { info.isNew }
+                ?.let { callback() }
+    }.let { this }
+
+    override fun onFailure(callback: (RequestError) -> Unit) = addResponseCallback { info ->
+        (info.response as? EdenResponse.Failure)
+                ?.let { callback(it.error) }
+    }.let { this }
 }
 
-internal fun Throwable.toResponseInfo() = ResponseInfo(asFailure())
 
-internal fun HTTPResponse.isError() = code >= 400
+

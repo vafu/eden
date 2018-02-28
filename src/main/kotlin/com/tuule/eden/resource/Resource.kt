@@ -11,10 +11,12 @@ import com.tuule.eden.util.addPath
 import com.tuule.eden.util.debugLogWithValue
 import com.tuule.eden.util.mutate
 import kotlinx.coroutines.experimental.async
+import java.lang.reflect.Type
 import kotlin.math.max
 
 open class Resource<T : Any>(val service: ResourceService,
-                             val url: String) {
+                             val url: String,
+                             val dataType: Type) {
 
     //<editor-fold desc="configuration">
 
@@ -149,7 +151,8 @@ open class Resource<T : Any>(val service: ResourceService,
     }
     //</editor-fold>
 
-    fun <R : Any> child(path: String) = service.resourceFromAbsoluteURL<R>(url.addPath(path))
+    fun <R : Any> child(path: String, type: Type) =
+            service.resourceFromAbsoluteURL<R>(url.addPath(path), type)
 
 
     override fun toString() = url
@@ -164,6 +167,9 @@ open class Resource<T : Any>(val service: ResourceService,
                 super.toString().toLowerCase()
     }
 }
+
+inline fun <reified R : Any> Resource<*>.child(path: String) =
+        service.resourceFromAbsoluteURL<R>(url.addPath(path), R::class.java)
 
 private val Resource<*>.isUpToDate
     get() = !invalidated && (now() - lastChanged <= retryTime)

@@ -1,16 +1,17 @@
 package com.tuule.eden.pipeline
 
-import com.google.gson.JsonObject
 import com.tuule.eden.networking.EdenResponse
-import com.tuule.eden.networking.asSuccess
 import com.tuule.eden.networking.entity
 import com.tuule.eden.networking.request.RequestError
-import com.tuule.eden.networking.request.asFailure
 import com.tuule.eden.resource.Entity
-import java.nio.charset.Charset
+import com.tuule.eden.util.asFailureResponse
+import com.tuule.eden.util.decodeToString
 
 internal class ContentTypeMatchTransformer(val delegate: ResponseTransformer,
                                            contentTypes: List<String>) : ResponseTransformer {
+
+    override val description = "Content type match transformer for $contentTypes"
+
     override fun transform(edenResponse: EdenResponse): EdenResponse =
             edenResponse.entity?.contentType
                     ?.takeIf(contentTypeMatcher::matches)
@@ -26,55 +27,47 @@ internal class ContentTypeMatchTransformer(val delegate: ResponseTransformer,
     }
 }
 
-internal class TextDecodingTransformer : ResponseTransformer {
-    override fun transform(edenResponse: EdenResponse): EdenResponse =
-            edenResponse.asSuccess()
-                    ?.entity
-                    ?.retype<ByteArray>()
-                    ?.withEntity { it.content.toString(it.charset.asCharset()) }
-                    ?.let { EdenResponse.Success(it) }
-                    ?: RequestError.Cause.DecodeError().asFailure(edenResponse.entity)
-
-    private fun String?.asCharset() =
-            try {
-                Charset.forName(this)
-            } catch (e: Exception) {
-                Charsets.UTF_8
-            }
-}
-
 class ResponseContentTransformer<In : Any, Out : Any>(private val mismatchAction: InputTypeMismatchAction = InputTypeMismatchAction.ERROR,
                                                       private val processingErrors: Boolean = false,
                                                       private val processor: (Entity<In>) -> Out?) : ResponseTransformer {
+    override val description = "Content type transformer "
+
     enum class InputTypeMismatchAction {
         ERROR,
         SKIP,
         SKIP_IF_OUTPUT_TYPE_MATCHES
     }
 
+    private fun process(entity: Entity<Any>): Entity<Out>? =
+            entity.retype<In>()
+                    ?.let(processor)
+                    ?.let { transformed -> entity.withEntity { transformed } }
+
 
     override fun transform(edenResponse: EdenResponse): EdenResponse = when (edenResponse) {
-        is EdenResponse.Success -> processEntity(edenResponse.entity)
+        is EdenResponse.Success -> processSuccess(edenResponse)
         is EdenResponse.Failure -> processError(edenResponse.error)
     }
 
-    private fun processEntity(entity: Entity<Any>): EdenResponse =
-            entity.retype<In>()
-                    ?.let(processor)
-                    ?.let { transformedData -> EdenResponse.Success(entity.withEntity { transformedData }) }
-                    ?: contentTypeMismatchError(entity)
+    private fun processSuccess(success: EdenResponse.Success): EdenResponse =
+            process(success.entity)?.let(EdenResponse::Success)
+                    ?: contentTypeMismatchError(success.entity)
 
     private fun contentTypeMismatchError(entity: Entity<Any>) =
             when (mismatchAction) {
                 InputTypeMismatchAction.SKIP,
                 InputTypeMismatchAction.SKIP_IF_OUTPUT_TYPE_MATCHES -> EdenResponse.Success(entity)
 
-                InputTypeMismatchAction.ERROR -> RequestError.Cause.WrongInputTypeInTransformerPipeline().asFailure()
+                InputTypeMismatchAction.ERROR -> RequestError.Cause.WrongInputTypeInTransformerPipeline().asFailureResponse()
             }
 
     private fun processError(requestError: RequestError) =
             requestError.entity.takeIf { processingErrors }
-                    ?.let(this::processEntity)
-                    ?.takeIf { it is EdenResponse.Success }
+                    ?.let(this::process)
+                    ?.let { EdenResponse.Failure(RequestError(requestError.message, requestError.cause, it)) }
                     ?: EdenResponse.Failure(requestError)
 }
+
+fun createTextDecodingTransformer(processErrors: Boolean = true) =
+        ResponseContentTransformer(processingErrors = processErrors, processor = Entity<ByteArray>::decodeToString)
+

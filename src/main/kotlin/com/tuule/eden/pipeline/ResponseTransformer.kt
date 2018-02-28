@@ -6,5 +6,6 @@ import com.tuule.eden.resource.Resource
 
 interface ResponseTransformer {
     fun transform(edenResponse: EdenResponse): EdenResponse
+    val description: String
 }
 

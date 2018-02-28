@@ -1,16 +1,14 @@
 package com.tuule.eden.networking
 
 import com.tuule.eden.networking.request.RequestError
-import com.tuule.eden.networking.request.asFailure
 import com.tuule.eden.resource.Entity
+import com.tuule.eden.util.asFailureResponse
 
 class HTTPResponse(val body: ByteArray?,
                    val code: Int,
                    val headers: Map<String, String>,
                    val message: String?)
 
-fun HTTPResponse.toByteArrayEntity() =
-        Entity(this, body ?: byteArrayOf())
 
 sealed class EdenResponse {
     class Success(val entity: Entity<Any>) : EdenResponse() {
@@ -29,7 +27,7 @@ sealed class EdenResponse {
 
 data class ResponseInfo(val response: EdenResponse, val isNew: Boolean = true) {
     companion object {
-        internal val cancelation = ResponseInfo(RequestError.Cause.RequestCanceled().asFailure())
+        internal val cancelation = ResponseInfo(RequestError.Cause.RequestCanceled().asFailureResponse())
     }
 }
 
@@ -40,4 +38,3 @@ val EdenResponse.entity: Entity<Any>?
     }
 
 
-fun EdenResponse.asSuccess() = this as? EdenResponse.Success
