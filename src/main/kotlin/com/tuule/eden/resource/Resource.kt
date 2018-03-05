@@ -20,7 +20,8 @@ open class Resource<T : Any>(val service: ResourceService,
 
     //<editor-fold desc="configuration">
 
-    internal val configuration = service.configuration(this, RequestMethod.GET)
+    internal val configuration
+        get() = configuration(RequestMethod.GET)
 
     private val configurationCache = mutableMapOf<RequestMethod, Configuration>()
 
