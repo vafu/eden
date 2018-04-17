@@ -5,14 +5,14 @@ import com.tuule.eden.networking.EdenResponse
 import com.tuule.eden.resource.Resource
 import java.lang.reflect.Type
 
-fun <T : Any> Resource<T>.getJsonTransformer(gson: Gson = Gson()) =
-        ResponseContentTransformer<String, T> {
-            try {
-                gson.fromJson(it.content, dataType)
-            } catch (e: Exception) {
-                null
-            }
-        }
+//fun <T : Any> Resource<T>.getJsonTransformer(gson: Gson = Gson()) =
+//        ResponseContentTransformer<String, T> {
+//            try {
+//                gson.fromJson(it.content, dataType)
+//            } catch (e: Exception) {
+//                null
+//            }
+//        }
 
 fun <R : Any> getTypeTransformer(type: Type, gson: Gson = Gson()) =
         ResponseContentTransformer<String, R>(processingErrors = true) {

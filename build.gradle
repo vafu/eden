@@ -34,19 +34,16 @@ dependencies {
 
     //test
 
-    testImplementation 'com.squareup.okhttp3:mockwebserver:3.9.1'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.1.0'
 
-    testCompile "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
-    testCompile('org.jetbrains.spek:spek-api:1.1.5') {
-        exclude group: 'org.jetbrains.kotlin'
-    }
-    testRuntime('org.jetbrains.spek:spek-junit-platform-engine:1.1.5') {
-        exclude group: 'org.junit.platform'
-        exclude group: 'org.jetbrains.kotlin'
-    }
-    testCompile 'org.jetbrains.kotlin:kotlin-test:1.2.21'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.1.0'
+    testImplementation 'com.squareup.okhttp3:mockwebserver:3.9.1'
     testCompile "io.mockk:mockk:1.7"
 
+}
+
+test {
+    useJUnitPlatform()
 }
 
 compileKotlin {

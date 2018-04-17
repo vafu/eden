@@ -15,8 +15,7 @@ import java.lang.reflect.Type
 import kotlin.math.max
 
 open class Resource<T : Any>(val service: ResourceService,
-                             val url: String,
-                             val dataType: Type) {
+                             val url: String) {
 
     //<editor-fold desc="configuration">
 
@@ -152,8 +151,8 @@ open class Resource<T : Any>(val service: ResourceService,
     }
     //</editor-fold>
 
-    fun <R : Any> child(path: String, type: Type) =
-            service.resourceFromAbsoluteURL<R>(url.addPath(path), type)
+    fun <R : Any> child(path: String) =
+            service.resourceFromAbsoluteURL<R>(url.addPath(path))
 
 
     override fun toString() = url
@@ -169,8 +168,8 @@ open class Resource<T : Any>(val service: ResourceService,
     }
 }
 
-inline fun <reified R : Any> Resource<*>.child(path: String) =
-        service.resourceFromAbsoluteURL<R>(url.addPath(path), R::class.java)
+//inline fun <reified R : Any> Resource<*>.child(path: String) =
+//        service.resourceFromAbsoluteURL(url.addPath(path), R::class.java)
 
 private val Resource<*>.isUpToDate
     get() = !invalidated && (now() - lastChanged <= retryTime)

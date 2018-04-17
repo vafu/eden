@@ -6,16 +6,12 @@ import com.tuule.eden.multiplatform.WeakCacheJVM
 import com.tuule.eden.multiplatform.debugLog
 import com.tuule.eden.networking.NetworkingProvider
 import com.tuule.eden.networking.request.RequestMethod
-import com.tuule.eden.pipeline.Pipeline
-import com.tuule.eden.pipeline.createTextDecodingTransformer
-import com.tuule.eden.pipeline.getJsonTransformer
 import com.tuule.eden.resource.Resource
 import com.tuule.eden.resource.configuration.Configuration
 import com.tuule.eden.resource.configuration.ConfigurationEntry
 import com.tuule.eden.resource.configuration.ConfigurationMutator
 import com.tuule.eden.util.addPath
 import com.tuule.eden.util.asValidUrl
-import java.lang.reflect.Type
 
 open class ResourceService(baseUrl: String? = null,
                            internal val networkingProvider: NetworkingProvider) {
@@ -29,14 +25,14 @@ open class ResourceService(baseUrl: String? = null,
     //<editor-fold desc="configuration">
     private val configEntries = mutableListOf<ConfigurationEntry>()
 
-    init {
-        configure { resource ->
-            copy(pipeline = pipeline.apply {
-                get(Pipeline.StageKey.DECODING).add(createTextDecodingTransformer())
-                get(Pipeline.StageKey.MODEL).add(resource.getJsonTransformer())
-            })
-        }
-    }
+//    init {
+//        configure { resource ->
+//            copy(pipeline = pipeline.apply {
+//                get(Pipeline.StageKey.DECODING).add(createTextDecodingTransformer())
+//                get(Pipeline.StageKey.MODEL).add(resource.getJsonTransformer())
+//            })
+//        }
+//    }
 
     internal var configVersion = 0L
 
@@ -73,24 +69,23 @@ open class ResourceService(baseUrl: String? = null,
 
     //<editor-fold desc="resource creation">
 
-    fun <T : Any> resourceFromAbsoluteURL(absoluteURL: String, type: Type): Resource<T> =
+    fun <T : Any> resourceFromAbsoluteURL(absoluteURL: String): Resource<T> =
             absoluteURL.asValidUrl().let {
-                println(type.typeName)
-                (cache.getOrPut(it) { Resource<T>(this, it, type) } as? Resource<T>)
-                        ?: throw RuntimeException("Already have a resource with different content type")
+                (cache.getOrPut(it) { Resource<T>(this, it) } as? Resource<T>)
+                        ?: throw IllegalArgumentException("Already have a resource with different content type")
             }
 
-    fun <T : Any> resource(baseUrl: String, path: String, type: Type) =
-            resourceFromAbsoluteURL<T>(baseUrl.addPath(path), type)
+    fun <T : Any> resource(baseUrl: String, path: String) =
+            resourceFromAbsoluteURL<T>(baseUrl.addPath(path))
 
-    fun <T : Any> resource(path: String, type: Type): Resource<T> =
-            baseUrl?.let { resource<T>(it, path, type) }
-                    ?: throw RuntimeException("Cannot create resource from path. Service does not have base url")
+    fun <T : Any> resource(path: String): Resource<T> =
+            baseUrl?.let { resource<T>(it, path) }
+                    ?: throw IllegalArgumentException("Cannot create resource from path. Service does not have base url")
 
     //</editor-fold>
 
 }
 
-inline fun <reified T : Any> ResourceService.resource(path: String) = resource<T>(path, T::class.java)
-inline fun <reified T : Any> ResourceService.resource(baseUrl: String, path: String) = resource<T>(baseUrl, path, T::class.java)
-inline fun <reified T : Any> ResourceService.resourceFromAbsoluteUrl(absoluteURL: String) = resourceFromAbsoluteURL<T>(absoluteURL, T::class.java)
+//inline fun <reified T : Any> ResourceService.resource(path: String) = resource<T>(path, T::class.java)
+//inline fun <reified T : Any> ResourceService.resource(baseUrl: String, path: String) = resource<T>(baseUrl, path, T::class.java)
+//inline fun <reified T : Any> ResourceService.resourceFromAbsoluteUrl(absoluteURL: String) = resourceFromAbsoluteURL<T>(absoluteURL, T::class.java)
